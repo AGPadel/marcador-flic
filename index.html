@@ -1,0 +1,1080 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#f8fafc">
+<link rel="manifest" href="./manifest.json">
+<title>PadelScore</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@900&family=DM+Sans:wght@500;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;user-select:none;}
+html,body{width:100%;height:100%;overflow:hidden;background:#f8fafc;}
+:root{
+  --t1:#1e3a5f;--t2:#7f1d1d;--green:#16a34a;
+  --gold:#f59e0b;--border:#e2e8f0;--mid:#64748b;
+}
+
+/* APP */
+.app{width:100vw;height:100dvh;display:flex;flex-direction:column;overflow:hidden;font-family:'DM Sans',sans-serif;background:#f8fafc;}
+
+/* TOPBAR */
+.topbar{height:44px;display:flex;align-items:center;justify-content:space-between;padding:0 10px;flex-shrink:0;position:relative;z-index:10;}
+.tb-timer{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:1rem;letter-spacing:2px;color:#94a3b8;}
+.tb-timer.on{color:var(--green);}
+.tb-btn{background:rgba(255,255,255,0.9);border:1px solid var(--border);border-radius:8px;width:34px;height:34px;font-size:0.95rem;display:flex;align-items:center;justify-content:center;cursor:pointer;}
+.tb-btn:active{background:#e2e8f0;}
+.tb-right{display:flex;gap:6px;}
+
+/* BOARD */
+.board{flex:1;display:grid;grid-template-columns:1fr 1fr;min-height:0;position:relative;}
+.divider{position:absolute;top:8%;bottom:8%;left:50%;width:1px;background:rgba(0,0,0,0.07);transform:translateX(-50%);}
+
+/* ZONES */
+.zone{display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;position:relative;overflow:hidden;padding-top:8px;background:#f8fafc;-webkit-user-select:none;user-select:none;}
+
+/* green flash */
+.zflash{position:absolute;inset:0;background:#16a34a;opacity:0;pointer-events:none;}
+.zflash.go{animation:gf 0.65s ease-out forwards;}
+@keyframes gf{0%{opacity:0.45}100%{opacity:0}}
+
+/* serve ball */
+.sball{font-size:1.8rem;position:absolute;top:8px;opacity:0;transition:opacity 0.3s;z-index:3;}
+.z1 .sball{left:10px;}.z2 .sball{right:10px;}
+.zone.srv .sball{opacity:1;}
+
+/* name */
+.zname{font-family:'DM Sans',sans-serif;font-weight:700;font-size:clamp(0.5rem,2vw,0.7rem);letter-spacing:3px;text-transform:uppercase;color:rgba(0,0,0,0.2);margin-bottom:2px;z-index:2;}
+.zone.srv .zname{color:var(--green);}
+
+/* BIG NUMBER */
+.zpt{font-family:'Barlow Condensed',sans-serif;font-weight:900;line-height:0.82;color:#1e293b;text-align:center;z-index:2;}
+.z1 .zpt{color:var(--t1);}
+.z2 .zpt{color:var(--t2);}
+.zpt.bump{animation:bump 0.22s cubic-bezier(0.34,1.56,0.64,1);}
+@keyframes bump{0%{transform:scale(1.28)}100%{transform:scale(1)}}
+
+/* games */
+.zgames{font-family:'Barlow Condensed',sans-serif;font-weight:900;line-height:1;margin-top:4px;z-index:2;}
+.z1 .zgames{color:rgba(30,58,95,0.15);}
+.z2 .zgames{color:rgba(127,29,29,0.15);}
+.zlbl{font-size:0.4rem;letter-spacing:3px;text-transform:uppercase;color:rgba(0,0,0,0.12);margin-top:2px;z-index:2;}
+
+/* SIDE WIN MESSAGE */
+.zone-msg{
+  position:absolute;
+  inset:0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:20px;
+  pointer-events:none;
+  opacity:0;
+  transform:scale(0.9);
+  transition:opacity 0.2s ease, transform 0.2s ease;
+  z-index:4;
+}
+.zone-msg.show{opacity:1;transform:scale(1);}
+.zone-msg-inner{
+  background:rgba(15,23,42,0.88);
+  color:#fff;
+  border-radius:18px;
+  padding:16px 18px;
+  text-align:center;
+  box-shadow:0 10px 30px rgba(0,0,0,0.18);
+  max-width:92%;
+}
+.zone-msg.kind-game .zone-msg-inner{background:rgba(22,163,74,0.95);}
+.zone-msg.kind-set .zone-msg-inner{background:rgba(245,158,11,0.95);}
+.zone-msg.kind-match .zone-msg-inner{background:linear-gradient(160deg,#0f172a,#1e293b);}
+.zone-msg-top{
+  font-family:'Barlow Condensed',sans-serif;
+  font-weight:900;
+  font-size:clamp(1.1rem,3.8vw,2rem);
+  letter-spacing:3px;
+  text-transform:uppercase;
+  line-height:1;
+}
+.zone-msg-name{
+  margin-top:6px;
+  font-family:'Barlow Condensed',sans-serif;
+  font-weight:900;
+  font-size:clamp(1.3rem,5vw,2.8rem);
+  letter-spacing:2px;
+  line-height:0.95;
+}
+.zone-msg-sub{
+  margin-top:8px;
+  font-size:0.72rem;
+  letter-spacing:2px;
+  text-transform:uppercase;
+  opacity:0.92;
+}
+
+/* CENTER */
+.cpanel{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);z-index:5;display:flex;flex-direction:column;align-items:center;gap:5px;width:110px;pointer-events:none;}
+.sets-pill{background:rgba(15,23,42,0.88);border-radius:12px;padding:6px 12px;display:flex;align-items:center;gap:5px;width:100%;justify-content:center;}
+.sp{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:1.5rem;color:#fff;}
+.sp.c1{color:#93c5fd;}.sp.c2{color:#fca5a5;}
+.spdash{font-size:0.6rem;color:#475569;}
+.sethist{background:rgba(255,255,255,0.95);border:1px solid rgba(0,0,0,0.07);border-radius:10px;padding:5px 8px;width:100%;}
+.shrow{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:2px;padding:2px 0;}
+.shrow:not(:last-child){border-bottom:1px solid rgba(0,0,0,0.06);padding-bottom:3px;margin-bottom:2px;}
+.shs{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:1.2rem;line-height:1;text-align:center;color:#64748b;}
+.shs.won1{color:var(--t1);}.shs.won2{color:var(--t2);}
+.shs.cur{color:#0f172a;font-size:1.4rem;}
+.shdash{font-size:0.5rem;color:#cbd5e1;text-align:center;}
+
+/* BAR */
+.bar{background:#fff;border-top:1px solid var(--border);display:flex;align-items:stretch;flex-shrink:0;height:54px;}
+.undo-btn{flex:0 0 auto;background:none;border:none;border-right:1px solid var(--border);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:0 18px;cursor:pointer;color:var(--mid);}
+.undo-btn:active{background:#fee2e2;color:#dc2626;}
+.undo-btn .ui{font-size:1.3rem;line-height:1;}
+.undo-btn .ul{font-size:0.4rem;letter-spacing:2px;text-transform:uppercase;}
+.bar-space{flex:1;}
+.bar-btns{display:flex;}
+.bar-btn{background:none;border:none;border-left:1px solid var(--border);color:#94a3b8;font-size:1rem;width:52px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;cursor:pointer;}
+.bar-btn:active{background:#f1f5f9;}
+.bar-btn small{font-size:0.36rem;letter-spacing:1px;text-transform:uppercase;}
+
+/* TOAST */
+.toast{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) scale(0.85);background:rgba(15,23,42,0.92);color:#fff;border-radius:14px;font-family:'Barlow Condensed',sans-serif;font-size:1.4rem;font-weight:900;letter-spacing:4px;padding:12px 24px;opacity:0;transition:opacity 0.15s,transform 0.15s;pointer-events:none;z-index:200;white-space:nowrap;}
+.toast.show{opacity:1;transform:translate(-50%,-50%) scale(1);}
+
+/* side toast */
+.sidetoast{position:fixed;bottom:68px;left:50%;transform:translateX(-50%);background:rgba(245,158,11,0.95);color:#fff;font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:1rem;letter-spacing:3px;padding:8px 20px;border-radius:10px;pointer-events:none;z-index:150;opacity:0;transition:opacity 0.3s;white-space:nowrap;}
+.sidetoast.show{opacity:1;}
+
+/* OVERLAYS */
+.overlay{position:fixed;inset:0;background:rgba(15,23,42,0.65);z-index:300;display:none;align-items:flex-end;}
+.overlay.show{display:flex;}
+.sheet{background:#fff;border-radius:24px 24px 0 0;width:100%;padding:16px 16px 36px;display:flex;flex-direction:column;gap:12px;max-height:90vh;overflow-y:auto;animation:shUp 0.28s cubic-bezier(0.34,1.2,0.64,1);}
+@keyframes shUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.shandle{width:40px;height:4px;background:#e2e8f0;border-radius:2px;margin:0 auto 2px;}
+.shhead{display:flex;align-items:center;justify-content:space-between;}
+.shtitle{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:1.3rem;letter-spacing:2px;color:#0f172a;text-transform:uppercase;}
+.shclose{background:#f1f5f9;border:none;border-radius:50%;width:34px;height:34px;font-size:1rem;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--mid);}
+.shdiv{height:1px;background:#f1f5f9;}
+
+/* inputs */
+.nfield{display:flex;flex-direction:column;gap:5px;}
+.nfield label{font-size:0.62rem;letter-spacing:2px;text-transform:uppercase;font-weight:700;}
+.nfield.f1 label{color:var(--t1);}.nfield.f2 label{color:var(--t2);}
+.ninput{background:#f8fafc;border:2px solid #e2e8f0;border-radius:12px;color:#0f172a;font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:1.3rem;letter-spacing:2px;padding:10px 13px;outline:none;width:100%;text-transform:uppercase;}
+.nfield.f1 .ninput:focus{border-color:var(--t1);}.nfield.f2 .ninput:focus{border-color:var(--t2);}
+
+/* buttons */
+.sbtn{background:#0f172a;border:none;color:#fff;font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:1rem;letter-spacing:3px;text-transform:uppercase;padding:14px;border-radius:12px;cursor:pointer;width:100%;}
+.sbtn.green{background:var(--green);}.sbtn.grey{background:#f1f5f9;color:var(--mid);}
+
+/* settings rows */
+.setrow{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid #f8fafc;}
+.setrow:last-of-type{border-bottom:none;}
+.sri{display:flex;flex-direction:column;gap:2px;flex:1;padding-right:14px;}
+.srl{font-weight:700;font-size:0.82rem;color:#0f172a;}
+.srd{font-size:0.67rem;color:#94a3b8;line-height:1.4;}
+.toggle{position:relative;width:44px;height:25px;flex-shrink:0;}
+.toggle input{opacity:0;width:0;height:0;}
+.ttrack{position:absolute;inset:0;background:#e2e8f0;border-radius:13px;cursor:pointer;transition:background 0.2s;}
+.toggle input:checked+.ttrack{background:#2563eb;}
+.ttrack::after{content:'';position:absolute;width:19px;height:19px;border-radius:50%;background:#fff;top:3px;left:3px;transition:transform 0.2s;box-shadow:0 1px 3px rgba(0,0,0,0.2);}
+.toggle input:checked+.ttrack::after{transform:translateX(19px);}
+
+/* serve override */
+.srvrow{display:flex;gap:8px;}
+.srvpick{flex:1;background:#f8fafc;border:2px solid #e2e8f0;border-radius:10px;padding:9px;cursor:pointer;font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:0.82rem;letter-spacing:1px;color:#0f172a;text-align:center;}
+.srvpick.at1{border-color:var(--t1);background:rgba(30,58,95,0.04);}
+.srvpick.at2{border-color:var(--t2);background:rgba(127,29,29,0.04);}
+
+/* hook */
+.hookblock{background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:10px;}
+.hooklbl{font-weight:700;font-size:0.58rem;letter-spacing:2px;text-transform:uppercase;color:var(--mid);margin-bottom:4px;}
+.hooklbl.c1{color:var(--t1);}.hooklbl.c2{color:var(--t2);}
+.hookurl{font-family:monospace;font-size:0.68rem;color:#0f172a;word-break:break-all;line-height:1.5;margin-bottom:6px;}
+.hookcopy{background:#0f172a;border:none;color:#fff;font-size:0.58rem;letter-spacing:1px;padding:5px 11px;border-radius:7px;cursor:pointer;font-weight:700;}
+.hookcopy.ok{background:var(--green);}
+.hookinfo{font-size:0.62rem;color:#94a3b8;line-height:1.8;}
+.hookinfo b{color:#0f172a;}
+
+/* SERVE MODAL */
+.modal{position:fixed;inset:0;background:rgba(15,23,42,0.88);z-index:600;display:none;align-items:center;justify-content:center;padding:24px;}
+.modal.show{display:flex;}
+.mbox{background:#fff;border-radius:22px;padding:24px 18px;width:100%;max-width:320px;display:flex;flex-direction:column;gap:12px;}
+.mtitle{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:1.4rem;letter-spacing:2px;text-transform:uppercase;text-align:center;color:#0f172a;}
+.msub{font-size:0.76rem;color:var(--mid);text-align:center;}
+.mbtn{background:#f8fafc;border:2px solid #e2e8f0;border-radius:13px;padding:14px;cursor:pointer;text-align:center;}
+.mbtn.t1{border-color:var(--t1);background:rgba(30,58,95,0.04);}
+.mbtn.t2{border-color:var(--t2);background:rgba(127,29,29,0.04);}
+.mname{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:1.2rem;letter-spacing:2px;color:#0f172a;}
+.msub2{font-size:0.6rem;color:var(--mid);margin-top:2px;}
+
+/* WIN */
+.win{position:fixed;inset:0;background:linear-gradient(160deg,#0f172a,#1e293b);z-index:500;display:none;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:32px;text-align:center;}
+.win.show{display:flex;}
+.winico{font-size:3rem;animation:wb 0.9s ease infinite alternate;}
+@keyframes wb{from{transform:translateY(0)}to{transform:translateY(-10px)}}
+.winlbl{font-size:0.68rem;letter-spacing:4px;color:#475569;text-transform:uppercase;}
+.winname{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:clamp(2rem,10vw,4.5rem);letter-spacing:4px;}
+.winname.c1{color:#93c5fd;}.winname.c2{color:#fca5a5;}
+.winsets{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:1.6rem;color:#fff;letter-spacing:5px;}
+.wintime{font-family:monospace;font-size:0.78rem;color:#475569;letter-spacing:3px;}
+.winbtn{margin-top:8px;background:#fff;border:none;color:#0f172a;font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:1rem;letter-spacing:3px;text-transform:uppercase;padding:14px 32px;border-radius:12px;cursor:pointer;}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <div class="topbar">
+    <button class="tb-btn" onclick="undoPoint()">↩</button>
+    <div class="tb-timer" id="timer">00:00</div>
+    <div class="tb-right">
+      <button class="tb-btn" onclick="showPanel('settings')">⚙️</button>
+      <button class="tb-btn" onclick="showNamesPanel()">✎</button>
+    </div>
+  </div>
+
+  <div class="board">
+    <div class="divider"></div>
+
+    <div class="zone z1" id="z1" onclick="addPoint(1)">
+      <div class="zflash" id="fl1"></div>
+      <div class="sball">🎾</div>
+      <div class="zname" id="nm1">PAREJA 1</div>
+      <div class="zpt" id="pt1">0</div>
+      <div class="zgames" id="gm1">0</div>
+      <div class="zlbl">juegos</div>
+
+      <div class="zone-msg" id="msg1">
+        <div class="zone-msg-inner">
+          <div class="zone-msg-top" id="msg1top"></div>
+          <div class="zone-msg-name" id="msg1name"></div>
+          <div class="zone-msg-sub" id="msg1sub"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="zone z2" id="z2" onclick="addPoint(2)">
+      <div class="zflash" id="fl2"></div>
+      <div class="sball">🎾</div>
+      <div class="zname" id="nm2">PAREJA 2</div>
+      <div class="zpt" id="pt2">0</div>
+      <div class="zgames" id="gm2">0</div>
+      <div class="zlbl">juegos</div>
+
+      <div class="zone-msg" id="msg2">
+        <div class="zone-msg-inner">
+          <div class="zone-msg-top" id="msg2top"></div>
+          <div class="zone-msg-name" id="msg2name"></div>
+          <div class="zone-msg-sub" id="msg2sub"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="cpanel">
+      <div class="sets-pill">
+        <span class="sp c1" id="ts1">0</span>
+        <span class="spdash">–</span>
+        <span class="sp c2" id="ts2">0</span>
+      </div>
+      <div class="sethist" id="sethist"></div>
+    </div>
+  </div>
+
+  <div class="bar">
+    <button class="undo-btn" onclick="undoPoint()">
+      <span class="ui">↩</span><span class="ul">Deshacer</span>
+    </button>
+    <div class="bar-space"></div>
+    <div class="bar-btns">
+      <button class="bar-btn" onclick="showPanel('settings')">⚙️<small>Ajustes</small></button>
+      <button class="bar-btn" onclick="resetMatch()">↺<small>Reset</small></button>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+  <div class="sidetoast" id="sidetoast"></div>
+
+  <!-- SERVE MODAL -->
+  <div class="modal" id="modal-serve">
+    <div class="mbox">
+      <div class="mtitle">🎾 ¿Quién saca?</div>
+      <div class="msub">Rotará automáticamente cada juego</div>
+      <button class="mbtn t1" onclick="selectServe(1)">
+        <div class="mname" id="mn1">PAREJA 1</div>
+        <div class="msub2">Saca primero</div>
+      </button>
+      <button class="mbtn t2" onclick="selectServe(2)">
+        <div class="mname" id="mn2">PAREJA 2</div>
+        <div class="msub2">Saca primero</div>
+      </button>
+    </div>
+  </div>
+
+  <!-- WIN -->
+  <div class="win" id="win">
+    <div class="winico">🏆</div>
+    <div class="winlbl">Ganador del partido</div>
+    <div class="winname" id="wname"></div>
+    <div class="winsets" id="wsets"></div>
+    <div class="wintime" id="wtime"></div>
+    <button class="winbtn" onclick="resetMatch()">Nuevo partido</button>
+  </div>
+
+  <!-- NAMES PANEL -->
+  <div class="overlay" id="names-panel" onclick="backdropClose('names-panel',event)">
+    <div class="sheet">
+      <div class="shandle"></div>
+      <div class="shhead">
+        <div class="shtitle">Nombres</div>
+        <button class="shclose" onclick="hidePanel('names-panel')">✕</button>
+      </div>
+      <div class="nfield f1"><label>Pareja 1</label><input class="ninput" id="ni1" maxlength="14" placeholder="PAREJA 1"></div>
+      <div class="nfield f2"><label>Pareja 2</label><input class="ninput" id="ni2" maxlength="14" placeholder="PAREJA 2"></div>
+      <button class="sbtn" onclick="saveNames()">Guardar</button>
+    </div>
+  </div>
+
+  <!-- SETTINGS PANEL -->
+  <div class="overlay" id="settings-panel" onclick="backdropClose('settings-panel',event)">
+    <div class="sheet">
+      <div class="shandle"></div>
+      <div class="shhead">
+        <div class="shtitle">Ajustes</div>
+        <button class="shclose" onclick="hidePanel('settings-panel')">✕</button>
+      </div>
+
+      <div class="setrow">
+        <div class="sri"><div class="srl">Saque actual</div><div class="srd">Cambia quién saca</div></div>
+      </div>
+      <div class="srvrow">
+        <button class="srvpick" id="sp1" onclick="forceServe(1)"></button>
+        <button class="srvpick" id="sp2" onclick="forceServe(2)"></button>
+      </div>
+      <div class="shdiv"></div>
+
+      <div class="setrow">
+        <div class="sri"><div class="srl">Cambio de lado</div><div class="srd">Avisar cuando toca cambiar</div></div>
+        <label class="toggle"><input type="checkbox" id="cfg-side" onchange="saveCfg()"><div class="ttrack"></div></label>
+      </div>
+      <div class="setrow">
+        <div class="sri"><div class="srl">Modo oficial</div><div class="srd" id="desc-official">Desactivado: cambio por set</div></div>
+        <label class="toggle"><input type="checkbox" id="cfg-official" onchange="saveCfg()"><div class="ttrack"></div></label>
+      </div>
+      <div class="setrow">
+        <div class="sri"><div class="srl">Punto de oro</div><div class="srd">A 40-40 gana el siguiente punto</div></div>
+        <label class="toggle"><input type="checkbox" id="cfg-gold" checked onchange="saveCfg()"><div class="ttrack"></div></label>
+      </div>
+      <div class="setrow">
+        <div class="sri"><div class="srl">Mejor de 5</div><div class="srd" id="desc-bo5">Desactivado: mejor de 3</div></div>
+        <label class="toggle"><input type="checkbox" id="cfg-bo5" onchange="saveCfg()"><div class="ttrack"></div></label>
+      </div>
+      <div class="setrow">
+        <div class="sri"><div class="srl">Voz</div><div class="srd">Cantar marcador en castellano</div></div>
+        <label class="toggle"><input type="checkbox" id="cfg-voice" checked onchange="saveCfg()"><div class="ttrack"></div></label>
+      </div>
+      <div class="shdiv"></div>
+
+      <div class="shtitle" style="font-size:1rem">⌚ Mando reloj</div>
+      <div class="hookblock">
+        <div class="hooklbl">Paso 1 - Hotspot</div>
+        <div class="hookinfo">Móvil: Ajustes → Zona WiFi → Activar<br>Reloj: Ajustes → Conexiones → WiFi → conectar al hotspot</div>
+      </div>
+      <div class="hookblock">
+        <div class="hooklbl">Paso 2 - Enlace del mando</div>
+        <div class="hookurl" id="hook-watchurl" style="font-size:0.6rem;word-break:break-all;">-</div>
+        <div style="display:flex;gap:6px;margin-top:6px;">
+          <button class="hookcopy" id="btn-copy-url" onclick="copyWatchUrl()" style="flex:1;padding:8px;font-size:0.65rem;border-radius:8px;">
+            📋 Copiar enlace
+          </button>
+          <button class="hookcopy" id="btn-wa" onclick="openWhatsApp()" style="flex:1;padding:8px;font-size:0.65rem;border-radius:8px;background:#25D366;">
+            💬 WhatsApp
+          </button>
+        </div>
+        <div class="hookinfo" style="margin-top:6px;">Mándate el enlace por WhatsApp y ábrelo desde el reloj</div>
+      </div>
+      <div class="hookblock">
+        <div class="hooklbl">Canal activo</div>
+        <div class="hookurl" id="hook-chan">-</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+'use strict';
+
+// ══════════════════════════════════════
+// CONFIG — saved safely, no state mixed in
+// ══════════════════════════════════════
+const CFG_KEY = 'ps_cfg5';
+let cfg = { side:false, official:false, gold:true, bo5:false, voice:true };
+
+function loadCfg() {
+  try { Object.assign(cfg, JSON.parse(localStorage.getItem(CFG_KEY)||'{}')); } catch(e){}
+  document.getElementById('cfg-side').checked    = cfg.side;
+  document.getElementById('cfg-official').checked= cfg.official;
+  document.getElementById('cfg-gold').checked    = cfg.gold;
+  document.getElementById('cfg-bo5').checked     = cfg.bo5;
+  document.getElementById('cfg-voice').checked   = cfg.voice;
+  updateDescriptions();
+}
+function saveCfg() {
+  cfg.side     = document.getElementById('cfg-side').checked;
+  cfg.official = document.getElementById('cfg-official').checked;
+  cfg.gold     = document.getElementById('cfg-gold').checked;
+  cfg.bo5      = document.getElementById('cfg-bo5').checked;
+  cfg.voice    = document.getElementById('cfg-voice').checked;
+  updateDescriptions();
+  try { localStorage.setItem(CFG_KEY, JSON.stringify(cfg)); } catch(e) {}
+}
+function updateDescriptions() {
+  document.getElementById('desc-official').textContent =
+    cfg.official ? 'Activado: juego impar' : 'Desactivado: cambio por set';
+  document.getElementById('desc-bo5').textContent =
+    cfg.bo5 ? 'Activado: mejor de 5' : 'Desactivado: mejor de 3';
+}
+const SETS_WIN = () => cfg.bo5 ? 3 : 2;
+
+// ══════════════════════════════════════
+// VOICE
+// ══════════════════════════════════════
+let voice = null;
+function initVoice() {
+  if (!window.speechSynthesis) return;
+  const load = () => {
+    const vs = speechSynthesis.getVoices();
+    voice = vs.find(v => v.lang.startsWith('es') && /jorge|male|diego/i.test(v.name))
+         || vs.find(v => v.lang.startsWith('es-ES'))
+         || vs.find(v => v.lang.startsWith('es'))
+         || null;
+  };
+  speechSynthesis.onvoiceschanged = load;
+  load();
+}
+function speak(txt) {
+  if (!cfg.voice || !window.speechSynthesis) return;
+  try {
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(txt);
+    u.lang='es-ES'; u.rate=0.88; u.pitch=0.82; u.volume=1;
+    if (voice) u.voice = voice;
+    speechSynthesis.speak(u);
+  } catch(e) {}
+}
+const PL = ['cero','quince','treinta','cuarenta'];
+function buildAnn() {
+  const t = server-1, o = 1-t;
+  const ps = pts[t], po = pts[o];
+  if (ps===3 && po===3) return cfg.gold ? 'punto de oro' : 'iguales';
+  return (PL[ps]||'cero') + ' - ' + (PL[po]||'cero');
+}
+
+// ══════════════════════════════════════
+// GAME STATE — simple flat variables, no nesting
+// ══════════════════════════════════════
+let pts        = [0, 0];
+let games      = [0, 0];
+let sets       = [0, 0];
+let setHist    = [];
+let totalGames = 0;
+let matchOver  = false;
+let names      = ['PAREJA 1', 'PAREJA 2'];
+
+// Undo: flat array of snapshots (NO nested history)
+let undoStack  = [];
+const MAX_UNDO = 20;
+
+function snapshot() {
+  return {
+    pts:        pts.slice(),
+    games:      games.slice(),
+    sets:       sets.slice(),
+    setHist:    setHist.map(s => ({t1:s.t1, t2:s.t2})),
+    totalGames: totalGames,
+    matchOver:  matchOver,
+    server:     server,
+    activeTeam: activeTeam,
+    elapsed:    elapsed,
+    setStart:   setStartElapsed
+  };
+}
+function restoreSnapshot(snap) {
+  pts        = snap.pts.slice();
+  games      = snap.games.slice();
+  sets       = snap.sets.slice();
+  setHist    = snap.setHist.map(s => ({t1:s.t1, t2:s.t2}));
+  totalGames = snap.totalGames;
+  matchOver  = snap.matchOver;
+  server     = snap.server;
+  activeTeam = snap.activeTeam;
+  elapsed    = snap.elapsed;
+  setStartElapsed = snap.setStart;
+}
+
+// ══════════════════════════════════════
+// SERVE & ACTIVE
+// ══════════════════════════════════════
+let server     = 0;
+let activeTeam = 1;
+
+function showServeModal() {
+  document.getElementById('mn1').textContent = names[0];
+  document.getElementById('mn2').textContent = names[1];
+  document.getElementById('modal-serve').classList.add('show');
+}
+function selectServe(t) {
+  server = t;
+  document.getElementById('modal-serve').classList.remove('show');
+  render();
+  setTimeout(() => speak('Saca ' + names[t-1]), 300);
+}
+function forceServe(t) {
+  server = t;
+  hidePanel('settings-panel');
+  render();
+  speak('Saca ' + names[t-1]);
+}
+function rotateServe() { server = server===1 ? 2 : 1; }
+
+// ══════════════════════════════════════
+// TIMER
+// ══════════════════════════════════════
+let timerRef = null, timerStart = null;
+let elapsed = 0, setStartElapsed = 0;
+
+function startTimer() {
+  if (timerRef) return;
+  timerStart = Date.now() - elapsed*1000;
+  timerRef = setInterval(() => {
+    elapsed = Math.floor((Date.now()-timerStart)/1000);
+    document.getElementById('timer').textContent = fmt(elapsed);
+    document.getElementById('timer').classList.add('on');
+  }, 1000);
+}
+function stopTimer() { clearInterval(timerRef); timerRef = null; }
+function fmt(s) { return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0'); }
+
+// ══════════════════════════════════════
+// SIDE MESSAGE
+// ══════════════════════════════════════
+let zoneMsgTimer = null;
+
+function hideZoneMessages() {
+  clearTimeout(zoneMsgTimer);
+  ['msg1','msg2'].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.className = 'zone-msg';
+  });
+}
+
+function showZoneMessage(team, kind, title, name, sub='') {
+  hideZoneMessages();
+  const el = document.getElementById('msg' + team);
+  if (!el) return;
+  document.getElementById('msg' + team + 'top').textContent = title;
+  document.getElementById('msg' + team + 'name').textContent = name;
+  document.getElementById('msg' + team + 'sub').textContent = sub;
+  el.className = 'zone-msg show kind-' + kind;
+  zoneMsgTimer = setTimeout(() => {
+    el.className = 'zone-msg';
+  }, kind === 'match' ? 3600 : 2600);
+}
+
+// ══════════════════════════════════════
+// ★ SCORING — flat, simple, tested ★
+// ══════════════════════════════════════
+function addPoint(team) {
+  if (matchOver) return;
+  if (server === 0) { showServeModal(); return; }
+
+  startTimer();
+
+  undoStack.push(snapshot());
+  if (undoStack.length > MAX_UNDO) undoStack.shift();
+
+  const t = team-1;
+  const o = 1-t;
+
+  let gameWon = false;
+
+  if (cfg.gold) {
+    if      (pts[t]===3)        { gameWon = true; }
+    else                       { pts[t]++; }
+  } else {
+    if      (pts[t]===3 && pts[o]===3) { pts[t] = 4; }
+    else if (pts[t]===4)               { gameWon = true; }
+    else if (pts[o]===4)               { pts[o] = 3; }
+    else if (pts[t]===3)               { gameWon = true; }
+    else                               { pts[t]++; }
+  }
+
+  if (gameWon) {
+    pts[0] = 0; pts[1] = 0;
+    games[t]++;
+    totalGames++;
+    rotateServe();
+
+    const g0 = games[0], g1 = games[1];
+    const diff = Math.abs(g0-g1);
+    const tb = (g0===6 && g1===6);
+    const setOver = tb
+      ? (g0>=7 || g1>=7) && diff>=1
+      : (g0>=6 || g1>=6) && diff>=2;
+
+    if (setOver) {
+      setHist.push({ t1:games[0], t2:games[1] });
+      sets[t]++;
+      const finishedSetScore = { g1: games[0], g2: games[1] };
+      games[0] = 0; games[1] = 0;
+
+      if (sets[t] >= SETS_WIN()) {
+        matchOver = true;
+        stopTimer();
+        activeTeam = team;
+        render();
+        showZoneMessage(team, 'match', 'Partido de', names[t], 'Victoria final');
+        setTimeout(() => showWin(team), 1300);
+        setTimeout(() => speak('Partido de ' + names[t]), 250);
+        return;
+      }
+
+      showToast('Set · ' + names[t]);
+      showZoneMessage(team, 'set', 'Set de', names[t], finishedSetScore.g1 + ' - ' + finishedSetScore.g2);
+      if (cfg.side && !cfg.official) setTimeout(showSideToast, 200);
+      setTimeout(() => speak('Set de ' + names[t] + '. Saca ' + names[server-1]), 300);
+
+    } else {
+      showToast('Juego · ' + names[t]);
+      showZoneMessage(team, 'game', 'Juego de', names[t], 'Saca ' + names[server-1]);
+      if (cfg.side && cfg.official && totalGames%2===1) setTimeout(showSideToast, 200);
+      setTimeout(() => speak('Juego de ' + names[t] + '. Saca ' + names[server-1]), 300);
+    }
+  } else {
+    setTimeout(() => speak(buildAnn()), 200);
+  }
+
+  activeTeam = team;
+  render();
+  saveMatch();
+  doFlash(team);
+  doBump(team);
+}
+
+function undoPoint() {
+  if (!undoStack.length) { showToast('Nada que deshacer'); return; }
+  restoreSnapshot(undoStack.pop());
+  try { speechSynthesis.cancel(); } catch(e) {}
+  hideZoneMessages();
+  render();
+  showToast('↩ Deshecho');
+}
+
+function resetMatch() {
+  stopTimer();
+  pts=[0,0]; games=[0,0]; sets=[0,0];
+  setHist=[]; undoStack=[]; totalGames=0;
+  matchOver=false; server=0; activeTeam=1;
+  elapsed=0; setStartElapsed=0; timerStart=null;
+  document.getElementById('timer').textContent='00:00';
+  document.getElementById('timer').classList.remove('on');
+  document.getElementById('win').classList.remove('show');
+  try { speechSynthesis.cancel(); } catch(e) {}
+  hideZoneMessages();
+  clearMatch();
+  render();
+  setTimeout(showServeModal, 300);
+}
+
+// ══════════════════════════════════════
+// RENDER — reads flat variables only
+// ══════════════════════════════════════
+const PTLBL = ['0','15','30','40'];
+
+function render() {
+  const p0=pts[0], p1=pts[1];
+  const gold = cfg.gold && p0===3 && p1===3;
+  const adv0 = !cfg.gold && p0===4;
+  const adv1 = !cfg.gold && p1===4;
+
+  document.getElementById('pt1').textContent = gold?'🥇': adv0?'AD': adv1?'—': (PTLBL[p0]||'0');
+  document.getElementById('pt2').textContent = gold?'🥇': adv1?'AD': adv0?'—': (PTLBL[p1]||'0');
+
+  const ptSize = 'min(43vw,78vh)';
+  document.getElementById('pt1').style.fontSize = ptSize;
+  document.getElementById('pt2').style.fontSize = ptSize;
+
+  document.getElementById('gm1').textContent = games[0];
+  document.getElementById('gm2').textContent = games[1];
+  document.getElementById('nm1').textContent = names[0];
+  document.getElementById('nm2').textContent = names[1];
+  document.getElementById('ts1').textContent = sets[0];
+  document.getElementById('ts2').textContent = sets[1];
+
+  document.getElementById('z1').className = 'zone z1' + (server===1?' srv':'');
+  document.getElementById('z2').className = 'zone z2' + (server===2?' srv':'');
+
+  const sp1=document.getElementById('sp1'), sp2=document.getElementById('sp2');
+  if (sp1) { sp1.textContent=names[0]; sp1.className='srvpick'+(server===1?' at1':''); }
+  if (sp2) { sp2.textContent=names[1]; sp2.className='srvpick'+(server===2?' at2':''); }
+
+  renderSetHist();
+  publishNtfy();
+}
+
+function renderSetHist() {
+  let html = '';
+  for (let i=0; i<setHist.length; i++) {
+    const s=setHist[i], w1=s.t1>s.t2, w2=s.t2>s.t1;
+    html += `<div class="shrow">
+      <div class="shs ${w1?'won1':''}">${s.t1}</div>
+      <div class="shdash">–</div>
+      <div class="shs ${w2?'won2':''}">${s.t2}</div>
+    </div>`;
+  }
+  html += `<div class="shrow">
+    <div class="shs cur">${games[0]}</div>
+    <div class="shdash">–</div>
+    <div class="shs cur">${games[1]}</div>
+  </div>`;
+  document.getElementById('sethist').innerHTML = html;
+}
+
+// ══════════════════════════════════════
+// ANIMATIONS
+// ══════════════════════════════════════
+function doFlash(t) {
+  const el = document.getElementById('fl'+t);
+  el.classList.remove('go'); void el.offsetWidth; el.classList.add('go');
+}
+function doBump(t) {
+  const el = document.getElementById('pt'+t);
+  el.classList.remove('bump'); void el.offsetWidth; el.classList.add('bump');
+}
+
+let toastTmr;
+function showToast(msg) {
+  clearTimeout(toastTmr);
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.className='toast show';
+  toastTmr = setTimeout(() => el.className='toast', 1800);
+}
+
+let sideTmr;
+function showSideToast() {
+  clearTimeout(sideTmr);
+  const el = document.getElementById('sidetoast');
+  el.textContent = '↔ Cambio de lado';
+  el.classList.add('show');
+  sideTmr = setTimeout(() => el.classList.remove('show'), 4000);
+}
+
+function showWin(team) {
+  document.getElementById('wname').textContent = names[team-1];
+  document.getElementById('wname').className = 'winname c'+team;
+  document.getElementById('wsets').textContent = setHist.map(s=>s.t1+'-'+s.t2).join('  ');
+  document.getElementById('wtime').textContent = '⏱ ' + fmt(elapsed);
+  document.getElementById('win').classList.add('show');
+}
+
+// ══════════════════════════════════════
+// PANELS
+// ══════════════════════════════════════
+function showPanel(id) {
+  const sp1=document.getElementById('sp1'), sp2=document.getElementById('sp2');
+  if (sp1) { sp1.textContent=names[0]; sp1.className='srvpick'+(server===1?' at1':''); }
+  if (sp2) { sp2.textContent=names[1]; sp2.className='srvpick'+(server===2?' at2':''); }
+  document.getElementById(id+'-panel').classList.add('show');
+}
+function showNamesPanel() {
+  document.getElementById('ni1').value = names[0];
+  document.getElementById('ni2').value = names[1];
+  document.getElementById('names-panel').classList.add('show');
+  setTimeout(() => document.getElementById('ni1').focus(), 300);
+}
+function hidePanel(id) {
+  document.getElementById(id).classList.remove('show');
+}
+function backdropClose(id, e) {
+  if (e.target === document.getElementById(id)) hidePanel(id);
+}
+function saveNames() {
+  names[0] = (document.getElementById('ni1').value.trim().toUpperCase()) || 'PAREJA 1';
+  names[1] = (document.getElementById('ni2').value.trim().toUpperCase()) || 'PAREJA 2';
+  hidePanel('names-panel');
+  render();
+}
+
+// ══════════════════════════════════════
+// PERSISTENCE — minimal, safe
+// ══════════════════════════════════════
+const MATCH_KEY = 'ps_match_v3';
+
+function saveMatch() {
+  if (matchOver) return;
+  try {
+    const data = {
+      pts, games, sets,
+      setHist: setHist.map(s => ({t1:s.t1, t2:s.t2})),
+      totalGames, server, activeTeam,
+      elapsed, setStartElapsed,
+      names, savedAt: Date.now()
+    };
+    localStorage.setItem(MATCH_KEY, JSON.stringify(data));
+  } catch(e) {
+    try {
+      const cfg_bak = localStorage.getItem(CFG_KEY);
+      const ntfy_bak = localStorage.getItem('ps_ntfy');
+      localStorage.clear();
+      if (cfg_bak) localStorage.setItem(CFG_KEY, cfg_bak);
+      if (ntfy_bak) localStorage.setItem('ps_ntfy', ntfy_bak);
+      localStorage.setItem(MATCH_KEY, JSON.stringify({
+        pts, games, sets,
+        setHist: setHist.map(s=>({t1:s.t1,t2:s.t2})),
+        totalGames, server, activeTeam, elapsed, setStartElapsed,
+        names, savedAt: Date.now()
+      }));
+    } catch(e2) {}
+  }
+}
+
+function clearMatch() {
+  try { localStorage.removeItem(MATCH_KEY); } catch(e) {}
+}
+
+function getSavedMatch() {
+  try {
+    const raw = localStorage.getItem(MATCH_KEY);
+    if (!raw) return null;
+    const d = JSON.parse(raw);
+    const age = Date.now() - (d.savedAt || 0);
+    const activity = (d.sets[0]+d.sets[1]+d.games[0]+d.games[1]+d.pts[0]+d.pts[1]);
+    if (age < 43200000 && activity > 0) return d;
+    return null;
+  } catch(e) { return null; }
+}
+
+function showResumeDialog(d) {
+  const age = Math.round((Date.now()-(d.savedAt||0))/60000);
+  const ageStr = age < 1 ? 'ahora mismo' : `hace ${age} min`;
+  const el = document.createElement('div');
+  el.id = 'resume-modal';
+  el.style.cssText = 'position:fixed;inset:0;background:rgba(15,23,42,0.88);z-index:700;display:flex;align-items:center;justify-content:center;padding:24px;';
+  el.innerHTML = `
+    <div style="background:#fff;border-radius:22px;padding:24px 18px;width:100%;max-width:320px;display:flex;flex-direction:column;gap:12px;align-items:center;">
+      <div style="font-size:2.5rem">🎾</div>
+      <div style="font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:1.4rem;letter-spacing:2px;color:#0f172a;text-transform:uppercase;text-align:center;">Partida guardada</div>
+      <div style="font-family:'DM Sans',sans-serif;font-size:0.82rem;color:#64748b;text-align:center;line-height:1.7;">
+        <b style="color:#0f172a">${d.names[0]}</b> vs <b style="color:#0f172a">${d.names[1]}</b><br>
+        Sets: ${d.sets[0]} – ${d.sets[1]}<br>
+        Juegos: ${d.games[0]} – ${d.games[1]}<br>
+        Guardado ${ageStr}
+      </div>
+      <button onclick="resumeMatch()" style="background:#16a34a;border:none;color:#fff;font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:1rem;letter-spacing:3px;text-transform:uppercase;padding:14px;border-radius:12px;cursor:pointer;width:100%;">Continuar →</button>
+      <button onclick="discardMatch()" style="background:#f1f5f9;border:none;color:#64748b;font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:1rem;letter-spacing:3px;text-transform:uppercase;padding:14px;border-radius:12px;cursor:pointer;width:100%;">Nueva partida</button>
+    </div>`;
+  document.body.appendChild(el);
+}
+
+function resumeMatch() {
+  const d = getSavedMatch();
+  document.getElementById('resume-modal')?.remove();
+  if (!d) { setTimeout(showServeModal, 300); return; }
+  pts        = d.pts.slice();
+  games      = d.games.slice();
+  sets       = d.sets.slice();
+  setHist    = d.setHist.map(s=>({t1:s.t1,t2:s.t2}));
+  totalGames = d.totalGames || 0;
+  server     = d.server || 0;
+  activeTeam = d.activeTeam || 1;
+  elapsed    = d.elapsed || 0;
+  setStartElapsed = d.setStartElapsed || 0;
+  names      = d.names || ['PAREJA 1','PAREJA 2'];
+  if (elapsed > 0) {
+    timerStart = Date.now() - elapsed*1000;
+    timerRef = setInterval(() => {
+      elapsed = Math.floor((Date.now()-timerStart)/1000);
+      document.getElementById('timer').textContent = fmt(elapsed);
+      document.getElementById('timer').classList.add('on');
+    }, 1000);
+  }
+  render();
+  showToast('Partida restaurada ✓');
+}
+
+function discardMatch() {
+  document.getElementById('resume-modal')?.remove();
+  clearMatch();
+  setTimeout(showServeModal, 300);
+}
+
+// ══════════════════════════════════════
+// NTFY — reloj communication
+// ══════════════════════════════════════
+const NTFY = 'https://ntfy.sh';
+let ntfyCh = '';
+
+function initNtfy() {
+  try {
+    const ch = localStorage.getItem('ps_ntfy');
+    if (!ch) {
+      setTimeout(showChannelSetup, 800);
+      return;
+    }
+    applyChannel(ch);
+  } catch(e) {}
+}
+
+function showChannelSetup() {
+  if (localStorage.getItem('ps_ntfy')) return;
+  const el = document.createElement('div');
+  el.id = 'ch-setup';
+  el.style.cssText = 'position:fixed;inset:0;background:rgba(15,23,42,0.92);z-index:700;display:flex;align-items:center;justify-content:center;padding:24px;';
+  el.innerHTML = `
+    <div style="background:#fff;border-radius:22px;padding:24px 18px;width:100%;max-width:320px;display:flex;flex-direction:column;gap:12px;">
+      <div style="font-size:1.8rem;text-align:center">⌚</div>
+      <div style="font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:1.3rem;letter-spacing:2px;color:#0f172a;text-transform:uppercase;text-align:center;">Elige tu canal</div>
+      <div style="font-family:'DM Sans',sans-serif;font-size:0.78rem;color:#64748b;text-align:center;line-height:1.6;">
+        Elige un nombre corto y fácil.<br>Será siempre el mismo - el reloj<br>lo recordará para siempre.
+      </div>
+      <div style="display:flex;align-items:center;gap:6px;background:#f8fafc;border:2px solid #e2e8f0;border-radius:12px;padding:4px 4px 4px 14px;">
+        <span style="font-family:monospace;font-size:0.8rem;color:#94a3b8;flex-shrink:0">padel-</span>
+        <input id="ch-name-input" type="text" maxlength="12"
+          style="border:none;background:transparent;font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:1.2rem;letter-spacing:2px;color:#0f172a;outline:none;width:100%;text-transform:lowercase;"
+          placeholder="tunombre" autocomplete="off" autocorrect="off" spellcheck="false">
+      </div>
+      <button onclick="confirmChannel()" style="background:#0f172a;border:none;color:#fff;font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:1rem;letter-spacing:3px;text-transform:uppercase;padding:14px;border-radius:12px;cursor:pointer;width:100%;">Usar este canal →</button>
+      <button onclick="useRandomChannel()" style="background:#f1f5f9;border:none;color:#94a3b8;font-family:'DM Sans',sans-serif;font-weight:700;font-size:0.75rem;padding:10px;border-radius:10px;cursor:pointer;width:100%;">Generar aleatorio</button>
+    </div>`;
+  document.body.appendChild(el);
+  setTimeout(() => document.getElementById('ch-name-input')?.focus(), 300);
+}
+
+function confirmChannel() {
+  const val = (document.getElementById('ch-name-input')?.value||'').trim().toLowerCase().replace(/[^a-z0-9]/g,'');
+  if (!val) return;
+  const ch = 'padel-' + val;
+  document.getElementById('ch-setup')?.remove();
+  localStorage.setItem('ps_ntfy', ch);
+  applyChannel(ch);
+}
+
+function useRandomChannel() {
+  const ch = 'padel-' + Math.random().toString(36).substring(2,10);
+  document.getElementById('ch-setup')?.remove();
+  localStorage.setItem('ps_ntfy', ch);
+  applyChannel(ch);
+}
+
+function applyChannel(ch) {
+  ntfyCh = ch;
+  const hookChan = document.getElementById('hook-chan');
+  if (hookChan) hookChan.textContent = ch;
+  const hookUrl = document.getElementById('hook-watchurl');
+  if (hookUrl) hookUrl.textContent = 'https://agpadel.github.io/marcador_padel/control.html?ch=' + ch;
+  subscribeNtfy();
+}
+
+let ntfyEvt = null;
+function subscribeNtfy() {
+  try {
+    if (ntfyEvt) ntfyEvt.close();
+    ntfyEvt = new EventSource(`${NTFY}/${ntfyCh}/sse`);
+    ntfyEvt.addEventListener('message', e => {
+      try {
+        const env = JSON.parse(e.data);
+        const msg = String(env.message||'').trim();
+        if (msg==='1') addPoint(1);
+        else if (msg==='2') addPoint(2);
+        else if (msg==='undo') undoPoint();
+      } catch(err) {}
+    });
+    ntfyEvt.onerror = () => { try{ntfyEvt.close();}catch{} setTimeout(subscribeNtfy,5000); };
+  } catch(e) {}
+}
+
+function publishNtfy() {
+  if (!ntfyCh) return;
+  try {
+    fetch(`${NTFY}/${ntfyCh}-state`, {
+      method:'POST',
+      body: JSON.stringify({ pts, games, sets, names, over:matchOver }),
+      headers:{
+        'Content-Type': 'text/plain',
+        'Title': 'state'
+      }
+    }).catch(()=>{});
+  } catch(e) {}
+}
+
+function getWatchUrl() {
+  return 'https://agpadel.github.io/marcador_padel/control.html?ch=' + ntfyCh;
+}
+
+function copyWatchUrl() {
+  const url = getWatchUrl();
+  try {
+    navigator.clipboard.writeText(url).then(() => {
+      const btn = document.getElementById('btn-copy-url');
+      btn.textContent = '✓ Copiado'; btn.classList.add('ok');
+      setTimeout(() => { btn.textContent = '📋 Copiar enlace'; btn.classList.remove('ok'); }, 2000);
+    });
+  } catch(e) {
+    const ta = document.createElement('textarea');
+    ta.value = url; ta.style.position='fixed'; ta.style.opacity='0';
+    document.body.appendChild(ta); ta.select();
+    document.execCommand('copy'); document.body.removeChild(ta);
+    const btn = document.getElementById('btn-copy-url');
+    btn.textContent = '✓ Copiado'; btn.classList.add('ok');
+    setTimeout(() => { btn.textContent = '📋 Copiar enlace'; btn.classList.remove('ok'); }, 2000);
+  }
+}
+
+function openWhatsApp() {
+  const url = getWatchUrl();
+  const msg = '🎾 Mando PadelScore - ábrelo en el reloj: ' + url;
+  window.open('https://wa.me/?text=' + encodeURIComponent(msg), '_blank');
+}
+
+// ══════════════════════════════════════
+// SYSTEM
+// ══════════════════════════════════════
+async function wakeLock() {
+  try { if('wakeLock' in navigator) await navigator.wakeLock.request('screen'); } catch(e) {}
+}
+async function lockLandscape() {
+  try { if(screen.orientation?.lock) await screen.orientation.lock('landscape'); } catch(e) {}
+}
+
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(()=>{});
+
+document.addEventListener('keydown', e => {
+  if (e.key==='1') addPoint(1);
+  if (e.key==='2') addPoint(2);
+  if (e.key==='z'||e.key==='Z') undoPoint();
+  if (e.key==='Escape') document.querySelectorAll('.overlay.show,.modal.show').forEach(el=>el.classList.remove('show'));
+});
+
+// ══════════════════════════════════════
+// INIT
+// ══════════════════════════════════════
+loadCfg();
+initVoice();
+render();
+initNtfy();
+wakeLock();
+lockLandscape();
+
+const _saved = getSavedMatch();
+if (_saved) {
+  setTimeout(() => showResumeDialog(_saved), 400);
+} else {
+  setTimeout(showServeModal, 400);
+}
+</script>
+</body>
+</html>

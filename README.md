@@ -1,2 +1,2 @@
-# marcador-flic
-MARCADOR CON BOTON FLIC
+# marcador_padel
+Marcador de pádel via Wifi
